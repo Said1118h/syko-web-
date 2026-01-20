@@ -1,51 +1,49 @@
 import streamlit as st
-import time
 
-# --- إعدادات الصفحة الأساسية ---
+# --- إعدادات الصفحة ---
 st.set_page_config(page_title="SYKO UNIVERSE", layout="wide")
 
-# --- تصميم SYKO (بدون أخطاء) ---
+# --- تصميم النيون ---
 st.markdown("""
 <style>
     .stApp { background-color: #000; color: #ff00ff; }
-    .syko-title { text-align: center; font-size: 60px; text-shadow: 0 0 20px #ff00ff; }
-    .black-hole { 
-        width: 150px; height: 150px; background: radial-gradient(circle, #000, #ff00ff);
-        border-radius: 50%; margin: auto; animation: spin 3s linear infinite;
-    }
-    @keyframes spin { 100% { transform: rotate(360deg); } }
+    .video-frame { border: 2px solid #ff00ff; border-radius: 15px; box-shadow: 0 0 20px #ff00ff; }
+    .chat-area { background-color: #111; border-radius: 10px; padding: 10px; height: 350px; overflow-y: auto; border: 1px solid #00ffff; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- إدارة الصفحات ---
-if "page" not in st.session_state:
-    st.session_state.page = "welcome"
+# --- نظام الشات (ذاكرة الجلسة) ---
+if "syko_chat" not in st.session_state:
+    st.session_state.syko_chat = []
 
-# --- الصفحة الأولى: الترحيب ---
-if st.session_state.page == "welcome":
-    st.markdown("<div class='syko-title'>SYKO UNIVERSE</div>", unsafe_allow_html=True)
-    st.markdown("<div class='black-hole'></div>", unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([1, 1, 1])
-    with col2:
-        if st.button("🚀 ENTER THE VOID", use_container_width=True):
-            st.session_state.page = "main"
-            st.rerun()
+# --- الواجهة ---
+st.markdown("<h1 style='text-align:center; color:#ff00ff;'>🌌 SYKO UNIVERSE</h1>", unsafe_allow_html=True)
 
-# --- الصفحة الثانية: المحتوى ---
-elif st.session_state.page == "main":
-    st.markdown("<h2 style='text-align:center;'>🎬 SYKO PRIVATE ROOM</h2>", unsafe_allow_html=True)
+col_left, col_right = st.columns([2, 1])
+
+with col_left:
+    st.subheader("📺 البث المباشر")
+    st.markdown("<div class='video-frame'>", unsafe_allow_html=True)
+    # الفيديو المختار مثبت هنا
+    st.video("https://www.youtube.com/watch?v=7pabvtEY-io")
+    st.markdown("</div>", unsafe_allow_html=True)
+    st.caption("🔴 SYKO LIVE STREAM")
+
+with col_right:
+    st.subheader("💬 الدردشة")
     
-    col_main, col_chat = st.columns([2, 1])
-    
-    with col_main:
-        video_url = st.text_input("YouTube Link:", "https://www.youtube.com/watch?v=7pabvtEY-io")
-        st.video(video_url)
-        
-    with col_chat:
-        st.subheader("💬 Chat")
-        st.text_area("الرسائل", value="SYKO: Welcome to my world!\nGuest: Interface is clean!", height=300, disabled=True)
-        
-        with st.form("chat_input", clear_on_submit=True):
-            msg = st.text_input("اكتب رسالتك هنا...")
-            submit = st.form_submit_button("إرسال")
+    # عرض الرسائل داخل حاوية
+    with st.container():
+        st.markdown("<div class='chat-area'>", unsafe_allow_html=True)
+        for m in st.session_state.syko_chat:
+            st.write(f"**{m['name']}**: {m['text']}")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # إدخال الرسالة
+    with st.form("msg_form", clear_on_submit=True):
+        name = st.text_input("الأسم", value="Guest")
+        text = st.text_input("اكتب رسالتك...")
+        if st.form_submit_button("إرسال 🔥"):
+            if text:
+                st.session_state.syko_chat.append({"name": name, "text": text})
+                st.rerun()
