@@ -1,209 +1,110 @@
 import streamlit as st
 import streamlit.components.v1 as components
+import time
 
-# 1. إعدادات النظام العالمي
-st.set_page_config(page_title="SYKO & YOUSRA PRO", layout="wide", initial_sidebar_state="collapsed")
+# --- 1. إعدادات الهوية ---
+st.set_page_config(page_title="SYKO & YOUSRA | COMMAND CENTER", layout="wide", initial_sidebar_state="collapsed")
 
-# إدارة الصفحات
-if "page" not in st.session_state:
-    st.session_state.page = "HOME"
-
-# 2. كود "الروح والتفاعل" (HTML/JS/CSS) - يغطي الشاشة بالكامل
-# ملاحظة: هذا الجزء هو المسؤول عن ميزة التفاعل مع اللمس والماوس
-pro_background = """
+# --- 2. محرك التفاعل الخلفي (Touch & Mouse Particles) ---
+# هذا الكود يضمن بقاء ميزة التفاعل التي تعشقها مع كل لمسة
+visual_engine = """
 <!DOCTYPE html>
 <html>
 <head>
     <style>
-        body { margin: 0; background: #000; color: #fff; font-family: 'Arial Black', sans-serif; overflow: hidden; }
-        canvas { position: fixed; top: 0; left: 0; z-index: -1; width: 100vw; height: 100vh; }
-        
-        .main-header {
-            position: relative;
-            z-index: 10;
-            text-align: center;
-            padding-top: 5vh;
-            pointer-events: none; /* عشان ما يمنع التفاعل مع الخلفية */
-        }
-
-        .glitch-title {
-            font-size: 80px;
-            font-weight: 900;
-            text-transform: uppercase;
-            position: relative;
-            text-shadow: 0.05em 0 0 #00fffc, -0.03em -0.04em 0 #fc00ff;
-            animation: glitch 500ms infinite;
-            letter-spacing: 10px;
-        }
-
-        @keyframes glitch {
-            0% { text-shadow: 0.05em 0 0 #00fffc, -0.03em -0.04em 0 #fc00ff; }
-            50% { text-shadow: -0.05em -0.025em 0 #00fffc, 0.025em 0.035em 0 #fc00ff; }
-            100% { text-shadow: -0.025em 0.05em 0 #00fffc, 0.05em 0 0 #fc00ff; }
-        }
-
-        .subtitle {
-            color: #00ffff;
-            letter-spacing: 5px;
-            font-size: 14px;
-            margin-top: -10px;
+        body { margin: 0; background: #000; overflow: hidden; }
+        canvas { position: fixed; top: 0; left: 0; z-index: -1; }
+        .top-brand {
+            position: absolute; top: 10px; width: 100%; text-align: center;
+            color: #fff; font-family: 'Courier New'; letter-spacing: 10px;
+            font-size: 40px; font-weight: bold; text-shadow: 0 0 10px #00ffff;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
+    <div class="top-brand">SYKO <span style="color:#ff00ff">✕</span> YOUSRA</div>
     <canvas id="canvas"></canvas>
-    <div class="main-header">
-        <div class="glitch-title">SYKO <span style="color:#ff00ff">✕</span> YOUSRA</div>
-        <div class="subtitle">NEURAL INTERFACE v2.0</div>
-    </div>
-
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
         let particles = [];
-        const mouse = { x: undefined, y: undefined };
-
-        // دعم الماوس واللمس (عشان التفاعل اللي طلبته)
-        function addParticles(x, y) {
-            for (let i = 0; i < 5; i++) {
-                particles.push(new Particle(x, y));
-            }
-        }
-
-        window.addEventListener('mousemove', (e) => {
-            mouse.x = e.x; mouse.y = e.y;
-            addParticles(e.x, e.y);
-        });
-
-        window.addEventListener('touchmove', (e) => {
-            mouse.x = e.touches[0].clientX;
-            mouse.y = e.touches[0].clientY;
-            addParticles(mouse.x, mouse.y);
-        });
-
-        class Particle {
+        function createP(x, y) { for (let i = 0; i < 5; i++) particles.push(new P(x, y)); }
+        window.addEventListener('mousemove', (e) => createP(e.x, e.y));
+        window.addEventListener('touchmove', (e) => createP(e.touches[0].clientX, e.touches[0].clientY));
+        class P {
             constructor(x, y) {
                 this.x = x; this.y = y;
-                this.size = Math.random() * 8 + 2;
-                this.speedX = Math.random() * 4 - 2;
-                this.speedY = Math.random() * 4 - 2;
+                this.size = Math.random() * 5 + 1;
+                this.spX = Math.random() * 3 - 1.5; this.spY = Math.random() * 3 - 1.5;
                 this.color = Math.random() > 0.5 ? '#ff00ff' : '#00ffff';
             }
-            update() {
-                this.x += this.speedX;
-                this.y += this.speedY;
-                if (this.size > 0.2) this.size -= 0.15;
-            }
-            draw() {
-                ctx.fillStyle = this.color;
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = this.color;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
+            update() { this.x += this.spX; this.y += this.spY; if(this.size > 0.1) this.size -= 0.1; }
+            draw() { ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill(); }
         }
-
-        function animate() {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            for (let i = 0; i < particles.length; i++) {
-                particles[i].update();
-                particles[i].draw();
-                if (particles[i].size <= 0.2) {
-                    particles.splice(i, 1);
-                    i--;
-                }
-            }
-            requestAnimationFrame(animate);
+        function anim() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            particles.forEach((p, i) => { p.update(); p.draw(); if(p.size <= 0.1) particles.splice(i, 1); });
+            requestAnimationFrame(anim);
         }
-        animate();
+        anim();
     </script>
 </body>
 </html>
 """
+components.html(visual_engine, height=150)
 
-# عرض الخلفية التفاعلية مع الهيدر
-components.html(pro_background, height=320)
-
-# 3. نظام الملاحة (Navigation) بتصميم زجاجي
+# --- 3. الأدوات الوظيفية (Functional Tools) ---
 st.markdown("""
 <style>
-    .stButton > button {
-        background: rgba(255, 255, 255, 0.05) !important;
-        border: 1px solid #ff00ff !important;
-        color: #fff !important;
-        border-radius: 10px !important;
-        transition: 0.4s;
-        height: 50px;
-        width: 100%;
-        font-weight: bold;
-    }
-    .stButton > button:hover {
-        background: #ff00ff !important;
-        box-shadow: 0 0 25px #ff00ff;
-        transform: translateY(-3px);
-    }
-    .pro-card {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(0, 255, 255, 0.3);
-        border-radius: 20px;
-        padding: 30px;
-        backdrop-filter: blur(10px);
-        margin-top: 20px;
+    .stApp { background: transparent; }
+    .console-card {
+        background: rgba(0, 0, 0, 0.7);
+        border: 1px solid #ff00ff;
+        border-radius: 10px;
+        padding: 20px;
+        font-family: 'Courier New', monospace;
+        box-shadow: 0 0 20px rgba(255, 0, 255, 0.2);
     }
 </style>
 """, unsafe_allow_html=True)
 
-nav_cols = st.columns(3)
-with nav_cols[0]:
-    if st.button("🌌 THE CORE"): st.session_state.page = "HOME"
-with nav_cols[1]:
-    if st.button("📂 ARCHIVES"): st.session_state.page = "VAULT"
-with nav_cols[2]:
-    if st.button("📡 NEURAL LINK"): st.session_state.page = "LINK"
+col_tools, col_status = st.columns([2, 1])
 
-st.markdown("<br>", unsafe_allow_html=True)
-
-# 4. محتوى الصفحات الـ PRO
-if st.session_state.page == "HOME":
-    st.markdown("""
-    <div class="pro-card">
-        <h2 style="color:#00ffff; letter-spacing:3px;">SYSTEM: ONLINE</h2>
-        <p style="color:#ccc; font-size:18px; line-height:1.6;">
-            مرحباً بك في المنطقة المركزية لـ <b>SYKO & YOUSRA</b>. <br>
-            هنا تبدأ التجربة الرقمية المتطورة. استمتع بالتفاعل مع الذرات في الخلفية.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-
-elif st.session_state.page == "VAULT":
-    st.markdown('<div class="pro-card">', unsafe_allow_html=True)
-    st.markdown("<h2 style='color:#ff00ff;'>📂 DATABASE</h2>", unsafe_allow_html=True)
-    v_cols = st.columns(2)
-    with v_cols[0]:
-        st.info("Project: Cypher-X (Active)")
-        st.info("Project: Ghost Protocol (Encrypted)")
-    with v_cols[1]:
-        st.info("User: SYKO [Admin]")
-        st.info("User: YOUSRA [Co-Founder]")
+with col_tools:
+    st.markdown('<div class="console-card">', unsafe_allow_html=True)
+    st.subheader("🖥️ SYKO TERMINAL")
+    command = st.text_input("ENTER COMMAND:", placeholder="e.g., /encrypt, /status, /bypass")
+    
+    if command:
+        if "/encrypt" in command:
+            text = command.replace("/encrypt ", "")
+            st.code(f"ENCRYPTING: {text} ...\nRESULT: 0x{text.encode().hex()}", language="bash")
+        elif "/status" in command:
+            st.success("ALL SYSTEMS OPERATIONAL. CONNECTION SECURE.")
+        else:
+            st.error("UNKNOWN COMMAND. ACCESS DENIED.")
     st.markdown('</div>', unsafe_allow_html=True)
 
-elif st.session_state.page == "LINK":
-    st.markdown('<div class="pro-card">', unsafe_allow_html=True)
-    st.markdown("<h2 style='color:#00ffff;'>📡 NEURAL STATUS</h2>", unsafe_allow_html=True)
-    col_stat1, col_stat2 = st.columns(2)
-    with col_stat1:
-        st.write("Sync Rate")
-        st.progress(99)
-    with col_stat2:
-        st.write("Encryption Level")
-        st.progress(100)
-    st.code("Connecting to Syko-Network... [SUCCESS]", language="bash")
+with col_status:
+    st.markdown('<div class="console-card" style="border-color:#00ffff;">', unsafe_allow_html=True)
+    st.subheader("📊 LIVE STATS")
+    st.write("CORE INTEGRITY")
+    st.progress(92)
+    st.write("ENCRYPTION LEVEL")
+    st.progress(100)
+    st.markdown('<p style="color:#00ffff; font-size:12px;">LATENCY: 12ms<br>LOCATION: ENCRYPTED</p>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# إخفاء عناصر ستريمليت الزائدة
+# --- 4. الهدف الفعال: Encryptor Tool ---
+st.write("---")
+st.subheader("🔐 SYKO & YOUSRA ENCRYPTION TOOL")
+input_data = st.text_area("أدخل رسالة سرية لتشفيرها:")
+if st.button("توليد كود التشفير"):
+    if input_data:
+        st.warning(f"تم التشفير بنجاح: SYKO-SEC-{int(time.time())}")
+        st.code(input_data[::-1].upper(), language="text") # مثال بسيط لوظيفة حقيقية
+
+# إخفاء عناصر Streamlit
 st.markdown("<style>header, footer, #MainMenu {visibility: hidden;}</style>", unsafe_allow_html=True)
