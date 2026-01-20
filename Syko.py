@@ -1,43 +1,34 @@
 import streamlit as st
 
-# --- إعدادات الصفحة ---
-st.set_page_config(page_title="SYKO GLITCH", layout="centered")
+# --- إعدادات النظام العالمي ---
+st.set_page_config(page_title="SYKO UNIVERSE", layout="wide", initial_sidebar_state="collapsed")
 
-# --- كود التشويش المتقدم (Glitch CSS) ---
+# --- دمج التصاميم (01 + A + C) عبر CSS و JavaScript ---
 st.markdown("""
 <style>
-    /* خلفية سوداء عميقة */
-    .stApp { 
-        background-color: #000; 
-        display: flex;
-        justify-content: center;
-        align-items: center;
+    /* الأساسيات */
+    body, .stApp {
+        background-color: #000;
+        margin: 0;
+        overflow: hidden;
+        color: #fff;
+        cursor: crosshair;
     }
 
-    /* إخفاء عناصر ستريمليت الزائدة */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-
-    /* تأثير التشويش (Glitch Effect) */
-    .glitch-container {
+    /* تأثير التشويش الرقمي 01 */
+    .glitch-header {
         position: relative;
-        text-align: center;
-    }
-
-    .syko-text {
-        color: white;
-        font-size: 100px;
-        font-weight: bold;
-        font-family: 'Courier New', Courier, monospace;
+        font-size: 12vw;
+        font-weight: 900;
         text-transform: uppercase;
-        position: relative;
-        display: inline-block;
+        text-align: center;
+        z-index: 10;
+        color: #fff;
+        pointer-events: none;
     }
 
-    .syko-text::before,
-    .syko-text::after {
-        content: 'SYKO UNIVERSE';
+    .glitch-header::before, .glitch-header::after {
+        content: 'SYKO';
         position: absolute;
         top: 0;
         left: 0;
@@ -46,42 +37,97 @@ st.markdown("""
         background: black;
     }
 
-    .syko-text::before {
-        left: 2px;
-        text-shadow: -2px 0 #ff00ff;
-        clip: rect(44px, 450px, 56px, 0);
-        animation: glitch-anim 5s infinite linear alternate-reverse;
+    .glitch-header::before {
+        left: 4px;
+        text-shadow: -4px 0 #ff00ff;
+        animation: glitch-v1 2s infinite linear alternate-reverse;
     }
 
-    .syko-text::after {
-        left: -2px;
-        text-shadow: -2px 0 #00ffff;
-        clip: rect(44px, 450px, 56px, 0);
-        animation: glitch-anim2 5s infinite linear alternate-reverse;
+    .glitch-header::after {
+        left: -4px;
+        text-shadow: -4px 0 #00ffff;
+        animation: glitch-v2 3s infinite linear alternate-reverse;
     }
 
-    @keyframes glitch-anim {
-        0% { clip: rect(31px, 9999px, 94px, 0); }
-        20% { clip: rect(62px, 9999px, 42px, 0); }
-        40% { clip: rect(16px, 9999px, 78px, 0); }
-        60% { clip: rect(87px, 9999px, 11px, 0); }
-        80% { clip: rect(53px, 9999px, 86px, 0); }
-        100% { clip: rect(24px, 9999px, 33px, 0); }
+    /* التفاعل البصري C و البوابة A */
+    canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 5;
     }
 
-    @keyframes glitch-anim2 {
-        0% { clip: rect(10px, 9999px, 85px, 0); }
-        25% { clip: rect(70px, 9999px, 20px, 0); }
-        50% { clip: rect(30px, 9999px, 60px, 0); }
-        75% { clip: rect(50px, 9999px, 10px, 0); }
-        100% { clip: rect(90px, 9999px, 40px, 0); }
+    @keyframes glitch-v1 {
+        0% { clip: rect(10px, 9999px, 30px, 0); }
+        100% { clip: rect(70px, 9999px, 80px, 0); }
     }
+    @keyframes glitch-v2 {
+        0% { clip: rect(80px, 9999px, 90px, 0); }
+        100% { clip: rect(10px, 9999px, 50px, 0); }
+    }
+
+    /* إخفاء واجهة ستريمليت ليكون التصميم نظيفاً */
+    header, footer, #MainMenu {visibility: hidden;}
 </style>
-""", unsafe_allow_html=True)
 
-# --- عرض الاسم فقط ---
-st.markdown("""
-<div class="glitch-container">
-    <div class="syko-text">SYKO UNIVERSE</div>
+<div class="glitch-wrapper">
+    <div class="glitch-header">SYKO</div>
 </div>
+
+<canvas id="canvas"></canvas>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let particles = [];
+const mouse = { x: null, y: null };
+
+window.addEventListener('mousemove', (e) => {
+    mouse.x = e.x;
+    mouse.y = e.y;
+    // إضافة "غبار رقمي" عند تحريك الماوس (تأثير C)
+    for (let i = 0; i < 5; i++) {
+        particles.push(new Particle());
+    }
+});
+
+class Particle {
+    constructor() {
+        this.x = mouse.x;
+        this.y = mouse.y;
+        this.size = Math.random() * 5 + 1;
+        this.speedX = Math.random() * 3 - 1.5;
+        this.speedY = Math.random() * 3 - 1.5;
+        this.color = Math.random() > 0.5 ? '#ff00ff' : '#00ffff';
+    }
+    update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        if (this.size > 0.2) this.size -= 0.1;
+    }
+    draw() {
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < particles.length; i++) {
+        particles[i].update();
+        particles[i].draw();
+        if (particles[i].size <= 0.2) {
+            particles.splice(i, 1);
+            i--;
+        }
+    }
+    requestAnimationFrame(animate);
+}
+animate();
+</script>
 """, unsafe_allow_html=True)
