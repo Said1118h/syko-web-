@@ -3,9 +3,10 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import json
 
-# --- 1. الربط التلقائي بقاعدة البيانات (بياناتك جاهزة) ---
+# --- 1. الربط الذكي (حل مشكلة ValueError) ---
 if not firebase_admin._apps:
-    syko_credentials = {
+    # وضعت لك البيانات هنا بشكل منظم جداً
+    syko_data = {
         "type": "service_account",
         "project_id": "syko-world",
         "private_key_id": "365af5afd5e40bdd6de2771c87528626941eebfc",
@@ -17,60 +18,50 @@ if not firebase_admin._apps:
         "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
         "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-v2v4v%40syko-world.iam.gserviceaccount.com"
     }
-    # تنظيف المفتاح ليعمل على السيرفر
-    syko_credentials["private_key"] = syko_credentials["private_key"].replace("\\n", "\n")
-    cred = credentials.Certificate(syko_credentials)
+    # السطر القادم هو "السر" الذي سيصلح الخطأ الأحمر
+    syko_data["private_key"] = syko_data["private_key"].replace("\\n", "\n")
+    cred = credentials.Certificate(syko_data)
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()
 
-# --- 2. استعادة التصميم النيون الوردي (SYKO STYLE) ---
-st.set_page_config(page_title="SYKO WORLD", layout="wide")
-
+# --- 2. التصميم الوردي والنيون (Style) ---
+st.set_page_config(page_title="SYKO PRIVATE ROOM", layout="wide")
 st.markdown("""
     <style>
     .stApp { background-color: #0e1117; color: #ff00ff; }
-    .neon-title { text-align: center; color: #ff00ff; text-shadow: 0 0 20px #ff00ff; font-size: 50px; font-weight: bold; padding: 20px; }
-    .chat-area { height: 400px; overflow-y: auto; background: rgba(0,0,0,0.8); border: 2px solid #00ff41; padding: 15px; border-radius: 15px; box-shadow: 0 0 10px #00ff41; }
+    .neon-title { text-align: center; color: #ff00ff; text-shadow: 0 0 15px #ff00ff; font-size: 45px; font-weight: bold; }
+    .chat-container { height: 400px; overflow-y: auto; background: rgba(0,0,0,0.9); border: 2px solid #00ff41; padding: 15px; border-radius: 15px; box-shadow: 0 0 10px #00ff41; }
     </style>
 """, unsafe_allow_html=True)
 
 st.markdown("<div class='neon-title'>🎬 SYKO PRIVATE ROOM</div>", unsafe_allow_html=True)
 
-# --- 3. السينما والدردشة ---
-col_left, col_right = st.columns([2, 1])
+# --- 3. شاشة العرض والدردشة ---
+col_vid, col_chat = st.columns([2, 1])
 
-with col_left:
-    st.markdown("### 🍿 شاشة العرض")
-    video_url = st.text_input("صق رابط الفيديو هنا:", "https://www.youtube.com/watch?v=7pabvtEY-io")
-    st.video(video_url)
+with col_vid:
+    url = st.text_input("🔗 صق رابط الفيديو هنا:", "https://www.youtube.com/watch?v=7pabvtEY-io")
+    st.video(url)
 
-with col_right:
+with col_chat:
     st.subheader("💬 الدردشة الحية")
-    
-    # عرض الرسائل من Firebase
     try:
-        messages = db.collection('chat').order_by('timestamp', direction=firestore.Query.DESCENDING).limit(15).stream()
-        chat_html = "<div class='chat-area'>"
+        # جلب الرسائل من الداتابيز
+        messages = db.collection('chat').order_by('timestamp', direction=firestore.Query.DESCENDING).limit(20).stream()
+        chat_html = "<div class='chat-container'>"
         for m in messages:
             d = m.to_dict()
-            name = d.get('user', 'Unknown')
-            text = d.get('text', '')
-            chat_html += f"<p><b style='color:#00ff41'>{name}:</b> <span style='color:white'>{text}</span></p>"
+            chat_html += f"<p><b style='color:#00ff41'>{d.get('user', 'Guest')}:</b> <span style='color:white'>{d.get('text', '')}</span></p>"
         chat_html += "</div>"
         st.markdown(chat_html, unsafe_allow_html=True)
     except:
-        st.info("اكتب رسالة لبدء الدردشة!")
+        st.info("اكتب أول رسالة لفتح الشات!")
 
-    # نموذج إرسال الرسائل
     with st.form("chat_form", clear_on_submit=True):
         u_name = st.text_input("اسمك:")
-        u_msg = st.text_input("الرسالة:")
+        u_msg = st.text_input("رسالتك:")
         if st.form_submit_button("إرسال 🔥"):
             if u_name and u_msg:
-                db.collection('chat').add({
-                    'user': u_name, 
-                    'text': u_msg, 
-                    'timestamp': firestore.SERVER_TIMESTAMP
-                })
+                db.collection('chat').add({'user': u_name, 'text': u_msg, 'timestamp': firestore.SERVER_TIMESTAMP})
                 st.rerun()
