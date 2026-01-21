@@ -1,96 +1,97 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="S", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="SYKO BOOSTER", layout="wide")
 
-# كود الواجهة النقية: حرف S فقط مع الثقب الأسود التفاعلي
-pure_s_void = """
+full_code = """
 <!DOCTYPE html>
 <html>
 <head>
-    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #000; overflow: hidden; cursor: none; }
-        
-        canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
-
-        #ui {
-            position: relative; z-index: 10; width: 100%; height: 100vh;
-            display: flex; align-items: center; justify-content: center;
-            pointer-events: none; opacity: 0;
-            animation: fadeIn 3s forwards;
-        }
-
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        .flame-s {
-            font-size: 30vw; font-family: 'Oswald', sans-serif;
-            background: linear-gradient(to bottom, #fff, #ffea00, #ff4e00, #ff0055);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 50px #ff4e00);
-            line-height: 0.8;
-            animation: floatS 4s infinite alternate ease-in-out;
-        }
-
-        @keyframes floatS {
-            from { transform: translateY(0) scale(1); filter: drop-shadow(0 0 30px #ff4e00); }
-            to { transform: translateY(-20px) scale(1.05); filter: drop-shadow(0 0 70px #ffea00); }
-        }
+        body { background: #000; color: white; font-family: sans-serif; overflow: hidden; }
+        canvas { position: fixed; top: 0; left: 0; z-index: 1; }
+        #ui { position: relative; z-index: 10; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        .box { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 30px; border-radius: 20px; border: 1px solid #0ff; text-align: center; width: 320px; }
+        button { width: 100%; padding: 12px; background: #0ff; border: none; font-weight: bold; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
     <canvas id="glCanvas"></canvas>
     <div id="ui">
-        <div class="flame-s">S</div>
+        <div class="box">
+            <h2>COINS: <span id="coins">0</span></h2>
+            <div id="login">
+                <input type="text" id="user" placeholder="Username" style="width:100%; padding:10px; margin-top:10px;">
+                <button onclick="login()">START</button>
+            </div>
+            <div id="actions" style="display:none;">
+                <button onclick="follow()">FOLLOW @S1X.S9 (+10)</button>
+                <button onclick="claim()" style="background:#f0f;">REDEEM 100</button>
+            </div>
+        </div>
     </div>
-
-    <script id="vs" type="f">
-        attribute vec2 position;
-        void main() { gl_Position = vec4(position, 0.0, 1.0); }
-    </script>
-    <script id="fs" type="f">
-        precision highp float;
-        uniform float time;
-        uniform vec2 res;
-        uniform vec2 mouse;
-        uniform float strength;
-        void main() {
-            vec2 uv = (gl_FragCoord.xy - 0.5 * res.xy) / min(res.y, res.x);
-            vec2 m = (mouse.xy - 0.5 * res.xy) / min(res.y, res.x);
-            float dist = length(uv - m);
-            float ripple = smoothstep(0.3, 0.0, dist) * strength;
-            uv += (uv - m) * ripple * 0.4;
-            float r = length(uv);
-            float s = sin(atan(uv.y, uv.x) * 4.0 + time + 1.0/r) * 0.5 + 0.5;
-            float glow = 0.012 / abs(r - 0.35 - s * 0.05);
-            vec3 col = vec3(0.0, 0.7, 1.0) * glow + vec3(1.0, 0.0, 0.4) * (glow * 0.5) + vec3(0.4, 1.0, 0.8) * ripple;
-            gl_FragColor = vec4(col * smoothstep(0.1, 0.2, r), 1.0);
-        }
-    </script>
-
     <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAbrrwnTAYVa-z83G9plOfieP4bm1rxDtA",
+            authDomain: "syko-booster.firebaseapp.com",
+            projectId: "syko-booster",
+            storageBucket: "syko-booster.firebasestorage.app",
+            messagingSenderId: "53373305140",
+            appId: "1:53373305140:web:0b69db40be835905206561",
+            databaseURL: "https://syko-booster-default-rtdb.firebaseio.com"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        let myUser = "";
+
+        function login() {
+            myUser = document.getElementById('user').value.trim().toLowerCase();
+            if(!myUser) return;
+            db.ref('users/' + myUser).on('value', (s) => {
+                let val = s.val() ? s.val().coins : 0;
+                if(!s.exists()) db.ref('users/' + myUser).set({coins: 0});
+                document.getElementById('coins').innerText = val;
+                document.getElementById('login').style.display = 'none';
+                document.getElementById('actions').style.display = 'block';
+            });
+        }
+        function follow() {
+            window.open('https://www.instagram.com/s1x.s9', '_blank');
+            db.ref('users/' + myUser).once('value', (s) => {
+                db.ref('users/' + myUser).update({coins: (s.val().coins || 0) + 10});
+            });
+        }
+        function claim() {
+            db.ref('users/' + myUser).once('value', (s) => {
+                if(s.val().coins >= 100) {
+                    db.ref('users/' + myUser).update({coins: s.val().coins - 100});
+                    db.ref('orders').push({user: myUser, time: Date.now()});
+                    alert("Order Sent!");
+                } else { alert("Need 100!"); }
+            });
+        }
+        // Black Hole Animation
         const canvas = document.getElementById('glCanvas');
         const gl = canvas.getContext('webgl');
-        let prog = gl.createProgram();
-        function createShader(type, id) {
-            let s = gl.createShader(type);
-            gl.shaderSource(s, document.getElementById(id).text);
-            gl.compileShader(s); gl.attachShader(prog, s);
+        const vs = `attribute vec2 p; void main(){gl_Position=vec4(p,0,1);}`;
+        const fs = `precision highp float; uniform float t; uniform vec2 r; void main(){vec2 uv=(gl_FragCoord.xy-.5*r)/min(r.y,r.x); float d=length(uv); float s=sin(atan(uv.y,uv.x)*4.+t+1./d)*.5+.5; float g=.01/abs(d-.35-s*.05); gl_FragColor=vec4(vec3(0,.8,1)*g,1);}`;
+        const pr = gl.createProgram();
+        function cS(t,s){let sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);gl.attachShader(pr,sh);}
+        cS(gl.VERTEX_SHADER,vs); cS(gl.FRAGMENT_SHADER,fs); gl.linkProgram(pr); gl.useProgram(pr);
+        const b=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,b); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,1,1,1,-1,-1,1,-1]),gl.STATIC_DRAW);
+        const p=gl.getAttribLocation(pr,'p'); gl.enableVertexAttribArray(p); gl.vertexAttribPointer(p,2,gl.FLOAT,0,0,0);
+        function draw(n){
+            canvas.width=window.innerWidth; canvas.height=window.innerHeight; gl.viewport(0,0,canvas.width,canvas.height);
+            gl.uniform1f(gl.getUniformLocation(pr,'t'),n*0.001); gl.uniform2f(gl.getUniformLocation(pr,'r'),canvas.width,canvas.height);
+            gl.drawArrays(gl.TRIANGLE_STRIP,0,4); requestAnimationFrame(draw);
         }
-        createShader(gl.VERTEX_SHADER, 'vs');
-        createShader(gl.FRAGMENT_SHADER, 'fs');
-        gl.linkProgram(prog); gl.useProgram(prog);
-        const posLoc = gl.getAttribLocation(prog, 'position');
-        const posBuf = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,1,1,1,-1,-1,1,-1]), gl.STATIC_DRAW);
-        gl.enableVertexAttribArray(posLoc);
-        gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+        requestAnimationFrame(draw);
+    </script>
+</body>
+</html>
+"""
 
-        let strength = 0, mx = 0, my = 0;
-        window.addEventListener('mousemove', (e) => { mx = e.clientX; my = window.innerHeight - e.clientY; strength = 0.6; });
-        window.addEventListener('touchmove', (e) => { mx = e.touches[0].clientX; my = window.innerHeight - e.touches[0].clientY; strength = 0.6; });
-
-        function render(now) {
-            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+components.html(full_code, height=800)
+st.markdown("<style>header, footer, #MainMenu {visibility: hidden;} .stApp {background:black;}</style>", unsafe_allow_html=True)
