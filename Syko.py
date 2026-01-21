@@ -1,79 +1,89 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="SYKO S | THE ULTIMATE VOID", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="SYKO S | THE VOID", layout="wide", initial_sidebar_state="collapsed")
 
-# الكود الجامع لكل التأثيرات
-master_code = """
+# كود يجمع الثقب الأسود، التفاعل، وشعار S الناري بنظام الطبقات المنفصلة
+master_piece = """
 <!DOCTYPE html>
 <html>
 <head>
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Syncopate:wght@700&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; background: #000; overflow: hidden; font-family: 'Syncopate', sans-serif; cursor: crosshair; }
-        canvas { width: 100vw; height: 100vh; display: block; position: fixed; top:0; left:0; z-index:1; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; overflow: hidden; font-family: 'Syncopate', sans-serif; cursor: crosshair; }
         
-        #ui-layer { position: relative; z-index: 10; width: 100%; height: 100vh; pointer-events: none; }
+        /* محرك الجرافيكس (الثقب الأسود) */
+        canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
 
-        /* شاشة البداية: SYKO & YOUSRA */
-        #reveal-layer {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        /* طبقة المحتوى */
+        #ui-wrapper {
+            position: relative; z-index: 10; width: 100%; height: 100vh;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            opacity: 0; transition: 2s ease-in-out;
+            pointer-events: none;
         }
-        .name-wrapper { display: flex; align-items: center; gap: 30px; }
-        .name { font-size: 6vw; color: white; letter-spacing: 1.5vw; text-shadow: 0 0 20px #0ff; }
-        .inf { font-size: 8vw; color: #f0f; filter: drop-shadow(0 0 30px #f0f); animation: spin 5s linear infinite; }
-        @keyframes spin { from {transform: rotate(0deg);} to {transform: rotate(360deg);} }
 
-        #core-btn {
-            margin-top: 40px; padding: 15px 40px; background: none; 
-            border: 1px solid #0ff; color: #0ff; font-family: 'Syncopate';
-            letter-spacing: 5px; cursor: pointer; transition: 0.5s; font-size: 12px;
-            opacity: 0; pointer-events: none;
+        /* المرحلة 1: الأسماء الافتتاحية */
+        #intro-layer {
+            display: flex; flex-direction: column; align-items: center;
+            transition: 1.5s ease; opacity: 0;
         }
-        #core-btn:hover { background: #0ff; color: #000; box-shadow: 0 0 40px #0ff; }
 
-        /* الواجهة النهائية: SYKO S */
-        #final-interface {
-            display: none; flex-direction: column; align-items: center; justify-content: center;
-            height: 100vh; opacity: 0; transition: 1.5s;
+        .names { display: flex; align-items: center; gap: 20px; margin-bottom: 30px; }
+        .n-text { font-size: 5vw; color: white; letter-spacing: 1vw; text-shadow: 0 0 20px #0ff; }
+        .inf-icon { font-size: 6vw; color: #f0f; animation: rotate 4s linear infinite; }
+        @keyframes rotate { from {transform: rotate(0deg);} to {transform: rotate(360deg);} }
+
+        /* المرحلة 2: شعار S المشتعل (SYKO S) */
+        #final-layer {
+            display: none; flex-direction: column; align-items: center;
+            opacity: 0; transition: 1.5s;
         }
-        .s-logo {
-            font-size: 20vw; font-family: 'Oswald', sans-serif;
-            background: linear-gradient(to bottom, #ffea00, #ff0055);
+
+        .flame-s {
+            font-size: 18vw; font-family: 'Oswald', sans-serif;
+            background: linear-gradient(to bottom, #ffea00, #ff4e00, #ff0055);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 30px #ff0055);
-            animation: pulse 2s infinite alternate;
+            filter: drop-shadow(0 0 30px #ff4e00);
+            line-height: 1; position: relative;
         }
-        @keyframes pulse { from {transform: scale(1);} to {transform: scale(1.05);} }
-        
-        .syko-s-text { font-size: 4vw; color: #fff; letter-spacing: 15px; margin-top: -30px; }
 
-        .active { opacity: 1 !important; pointer-events: all !important; }
-        .show-flex { display: flex !important; opacity: 1 !important; pointer-events: all !important; }
+        .syko-s-title { 
+            font-size: 3vw; color: #fff; letter-spacing: 20px; 
+            margin-top: -20px; text-shadow: 0 0 10px #000;
+        }
+
+        /* الأزرار */
+        .btn {
+            margin-top: 40px; padding: 12px 40px; background: none;
+            border: 1px solid #0ff; color: #0ff; font-family: 'Syncopate';
+            letter-spacing: 5px; cursor: pointer; pointer-events: all;
+            transition: 0.4s; font-size: 10px; text-decoration: none;
+        }
+        .btn:hover { background: #0ff; color: #000; box-shadow: 0 0 30px #0ff; }
+
+        .visible { opacity: 1 !important; pointer-events: all !important; }
+        @keyframes pulseS { from {transform: scale(1);} to {transform: scale(1.05);} }
+        .flame-s { animation: pulseS 2s infinite alternate; }
     </style>
 </head>
 <body>
     <canvas id="glCanvas"></canvas>
 
-    <div id="ui-layer">
-        <div id="reveal-layer">
-            <div class="name-wrapper">
-                <div class="name">SYKO</div>
-                <div class="inf">∞</div>
-                <div class="name">YOUSRA</div>
+    <div id="ui-wrapper">
+        <div id="intro-layer">
+            <div class="names">
+                <span class="n-text">SYKO</span>
+                <span class="inf-icon">∞</span>
+                <span class="n-text">YOUSRA</span>
             </div>
-            <button id="core-btn" onclick="goToFinal()">INITIATE LINK</button>
+            <button class="btn" onclick="activateS()">INITIATE LINK</button>
         </div>
 
-        <div id="final-interface">
-            <div class="s-logo">S</div>
-            <div class="syko-s-text">SYKO S</div>
-            <a href="https://www.instagram.com/s1x.s9" target="_blank" 
-               style="margin-top:40px; color:#0ff; text-decoration:none; border:1px solid #0ff; padding:10px 30px; font-size:10px; letter-spacing:3px;">
-               FOLLOW THE VOID
-            </a>
+        <div id="final-layer">
+            <div class="flame-s">S</div>
+            <h1 class="syko-s-title">SYKO S</h1>
+            <a href="https://www.instagram.com/s1x.s9" target="_blank" class="btn">FOLLOW THE VOID</a>
         </div>
     </div>
 
@@ -81,33 +91,30 @@ master_code = """
         attribute vec2 position;
         void main() { gl_Position = vec4(position, 0.0, 1.0); }
     </script>
-
     <script id="fs" type="f">
         precision highp float;
         uniform float time;
         uniform vec2 res;
         uniform vec2 mouse;
         uniform float strength;
-        uniform float transition;
+        uniform float trans;
         void main() {
             vec2 uv = (gl_FragCoord.xy - 0.5 * res.xy) / min(res.y, res.x);
             vec2 m = (mouse.xy - 0.5 * res.xy) / min(res.y, res.x);
             
-            float distToMouse = length(uv - m);
-            float ripple = smoothstep(0.2, 0.0, distToMouse) * strength;
+            float dist = length(uv - m);
+            float ripple = smoothstep(0.2, 0.0, dist) * strength;
             uv += (uv - m) * ripple * 0.5;
 
             float r = length(uv);
-            float a = atan(uv.y, uv.x);
-            float s = sin(a * 4.0 + time + 1.0/r) * 0.5 + 0.5;
-            float glow = 0.015 / abs(r - 0.3 - s * 0.08 * transition);
+            float s = sin(atan(uv.y, uv.x) * 4.0 + time + 1.0/r) * 0.5 + 0.5;
+            float glow = 0.015 / abs(r - 0.3 - s * 0.08 * trans);
             
-            vec3 col = vec3(0.0, 0.8, 1.0) * glow;
-            col += vec3(1.0, 0.0, 1.0) * (glow * 0.4);
-            col += vec3(0.0, 1.0, 1.0) * (ripple * 3.0);
+            vec3 col = vec3(0.0, 0.7, 1.0) * glow; // Cyan
+            col += vec3(1.0, 0.0, 0.5) * (glow * 0.4); // Magenta
+            col += vec3(0.0, 1.0, 0.8) * ripple; // Interaction
 
-            float hole = smoothstep(0.1 + transition*0.5, 0.15 + transition*0.8, r);
-            gl_FragColor = vec4(col * hole, 1.0);
+            gl_FragColor = vec4(col * smoothstep(0.1 + trans*0.5, 0.15 + trans*0.8, r), 1.0);
         }
     </script>
 
@@ -134,35 +141,34 @@ master_code = """
         gl.enableVertexAttribArray(posLoc);
         gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
-        let trans = 0, isPressed = false, strength = 0, mouseX = 0, mouseY = 0;
+        let trans = 0, isStarted = false, strength = 0, mx = 0, my = 0;
 
-        window.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = window.innerHeight - e.clientY; strength = 0.6; });
+        window.addEventListener('mousemove', (e) => { mx = e.clientX; my = window.innerHeight - e.clientY; strength = 0.6; });
         window.addEventListener('mousedown', () => {
-            if(!isPressed) {
-                isPressed = true;
-                setTimeout(() => {
-                    document.getElementById('reveal-layer').classList.add('active');
-                    document.getElementById('core-btn').classList.add('active');
-                }, 1000);
+            if(!isStarted) {
+                isStarted = true;
+                document.getElementById('intro-layer').classList.add('visible');
             }
         });
 
-        function goToFinal() {
-            document.getElementById('reveal-layer').style.display = 'none';
-            document.getElementById('final-interface').classList.add('show-flex');
+        function activateS() {
+            document.getElementById('intro-layer').style.display = 'none';
+            const final = document.getElementById('final-layer');
+            final.style.display = 'flex';
+            setTimeout(() => final.classList.add('visible'), 50);
         }
 
         function render(now) {
             canvas.width = window.innerWidth; canvas.height = window.innerHeight;
             gl.viewport(0, 0, canvas.width, canvas.height);
-            if(isPressed && trans < 1.0) trans += 0.005;
+            if(isStarted && trans < 1.0) trans += 0.005;
             strength *= 0.94;
 
             gl.uniform1f(gl.getUniformLocation(prog, 'time'), now * 0.001);
             gl.uniform2f(gl.getUniformLocation(prog, 'res'), canvas.width, canvas.height);
-            gl.uniform2f(gl.getUniformLocation(prog, 'mouse'), mouseX, mouseY);
+            gl.uniform2f(gl.getUniformLocation(prog, 'mouse'), mx, my);
             gl.uniform1f(gl.getUniformLocation(prog, 'strength'), strength);
-            gl.uniform1f(gl.getUniformLocation(prog, 'transition'), trans);
+            gl.uniform1f(gl.getUniformLocation(prog, 'trans'), trans);
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
             requestAnimationFrame(render);
         }
@@ -172,5 +178,5 @@ master_code = """
 </html>
 """
 
-components.html(master_code, height=900, scrolling=False)
+components.html(master_piece, height=900, scrolling=False)
 st.markdown("<style>header, footer, #MainMenu {visibility: hidden;} .stApp {background:black;}</style>", unsafe_allow_html=True)
