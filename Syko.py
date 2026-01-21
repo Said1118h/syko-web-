@@ -1,9 +1,10 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="SYKO | GHOST RIPPLE", layout="wide", initial_sidebar_state="collapsed")
+# إعدادات الصفحة الأساسية
+st.set_page_config(page_title="SYKO | THE VOID", layout="wide", initial_sidebar_state="collapsed")
 
-# تعريف كود الجرافيكس والتفاعل
+# كود الجرافيكس والتفاعل (تأكد من النسخ حتى السطر الأخير)
 vortex_final_code = """
 <!DOCTYPE html>
 <html>
@@ -88,4 +89,47 @@ vortex_final_code = """
             gl.attachShader(prog, s);
         }
         createShader(gl.VERTEX_SHADER, 'vs');
-        create
+        createShader(gl.FRAGMENT_SHADER, 'fs');
+        gl.linkProgram(prog);
+        gl.useProgram(prog);
+        const posLoc = gl.getAttribLocation(prog, 'position');
+        const posBuf = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,1,1,1,-1,-1,1,-1]), gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(posLoc);
+        gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+        let trans = 0, isPressed = false, strength = 0, mouseX = 0, mouseY = 0;
+        window.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = window.innerHeight - e.clientY; strength = 0.5; });
+        window.addEventListener('touchmove', (e) => { mouseX = e.touches[0].clientX; mouseY = window.innerHeight - e.touches[0].clientY; strength = 0.5; });
+        window.addEventListener('mousedown', () => { isPressed = true; setTimeout(() => { document.getElementById('core-btn').style.opacity = "1"; document.getElementById('core-btn').style.pointerEvents = "all"; }, 2000); });
+        function openSecondPage() { document.getElementById('reveal-layer').style.display = 'none'; document.getElementById('second-page').classList.add('show-page'); }
+        function render(now) {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            if(isPressed && trans < 1.0) trans += 0.006;
+            if(trans >= 0.8) document.getElementById('reveal-layer').classList.add('active');
+            strength *= 0.92;
+            gl.uniform1f(gl.getUniformLocation(prog, 'time'), now * 0.001);
+            gl.uniform2f(gl.getUniformLocation(prog, 'res'), canvas.width, canvas.height);
+            gl.uniform2f(gl.getUniformLocation(prog, 'mouse'), mouseX, mouseY);
+            gl.uniform1f(gl.getUniformLocation(prog, 'strength'), strength);
+            gl.uniform1f(gl.getUniformLocation(prog, 'transition'), trans);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            requestAnimationFrame(render);
+        }
+        requestAnimationFrame(render);
+    </script>
+</body>
+</html>
+"""
+
+# عرض الـ HTML
+components.html(vortex_final_code, height=900, scrolling=False)
+
+# تنظيف واجهة Streamlit
+st.markdown("""
+<style>
+    header, footer, #MainMenu {visibility: hidden;}
+    .stApp {background: black;}
+</style>
+""", unsafe_allow_html=True)
