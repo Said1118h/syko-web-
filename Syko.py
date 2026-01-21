@@ -1,130 +1,141 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="SYKO | THE SINGULARITY", layout="wide", initial_sidebar_state="collapsed")
+# إعداد الصفحة لتكون شاشة عرض سينمائية
+st.set_page_config(page_title="SYKO & YOUSRA | THE ULTIMATE", layout="wide", initial_sidebar_state="collapsed")
 
-# شيدر (Shader) احترافي للثقب الأسود - جرافيكس سينمائي
-black_hole_shader = """
+# كود الجرافيكس الفائق (Particle Physics Engine)
+ultra_vortex_code = """
 <!DOCTYPE html>
 <html>
 <head>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; font-family: 'Arial Black', sans-serif; }
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Montserrat', sans-serif; cursor: none; }
         #canvas-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; }
         
-        .overlay {
+        .content {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            text-align: center; z-index: 10; pointer-events: none;
+            text-align: center; z-index: 100; opacity: 0; transition: all 2s ease-in-out;
+            pointer-events: none;
         }
+
+        .name {
+            font-size: 100px; font-weight: 900; letter-spacing: 25px; color: #fff;
+            text-shadow: 0 0 30px #00ffff, 0 0 60px #ff00ff;
+            margin: 0;
+        }
+
+        .infinity-symbol {
+            font-size: 150px; color: #ff00ff; line-height: 1;
+            filter: drop-shadow(0 0 40px #ff00ff);
+            margin: -20px 0;
+        }
+
+        .show { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
         
-        .name-container { opacity: 0; transition: 3s; }
-        .syko-yousra {
-            font-size: 80px; font-weight: 900; letter-spacing: 20px; color: #fff;
-            text-shadow: 0 0 30px #ff00ff, 0 0 60px #00ffff;
+        #instruction {
+            position: fixed; bottom: 30px; width: 100%; text-align: center;
+            color: rgba(0, 255, 255, 0.5); font-size: 12px; letter-spacing: 5px;
+            text-transform: uppercase; z-index: 10;
         }
-        .infinity { font-size: 120px; color: #ff00ff; margin: 10px 0; display: block; }
-        
-        #enter-btn {
-            position: absolute; bottom: 10%; left: 50%; transform: translateX(-50%);
-            padding: 15px 40px; background: none; border: 2px solid #00ffff;
-            color: #00ffff; letter-spacing: 5px; cursor: pointer; z-index: 20;
-            transition: 0.5s; font-weight: bold;
-        }
-        #enter-btn:hover { background: #00ffff; color: #000; box-shadow: 0 0 50px #00ffff; }
     </style>
 </head>
 <body>
+    <div id="instruction">HOLD MOUSE OR TOUCH TO ACTIVATE BLACK HOLE</div>
     <div id="canvas-container"></div>
-    <div class="overlay" id="names">
-        <div class="syko-yousra">SYKO</div>
-        <div class="infinity">∞</div>
-        <div class="syko-yousra">YOUSRA</div>
+    
+    <div class="content" id="final-ui">
+        <div class="name">SYKO</div>
+        <div class="infinity-symbol">∞</div>
+        <div class="name">YOUSRA</div>
     </div>
-    <button id="enter-btn" onclick="startVortex()">ENTER THE VOID</button>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
     <script>
-        // كود الشيدر المتقدم لإنشاء ثقب أسود واقعي (Interstellar Style)
-        const fragmentShader = `
-            uniform float time;
-            uniform vec2 resolution;
-            uniform float zoom;
+        let particles = [];
+        let numParticles = 1200;
+        let vortexActive = false;
 
-            void main() {
-                vec2 uv = (gl_FragCoord.xy - 0.5 * resolution.xy) / min(resolution.y, resolution.x);
-                float r = length(uv);
-                float angle = atan(uv.y, uv.x);
-                
-                // تشويه الفضاء حول الثقب الأسود
-                float distort = 0.2 / (r + 0.01);
-                float spiral = angle + distort * zoom + time * 0.5;
-                
-                // إنشاء قرص التراكم المتوهج
-                float disk = smoothstep(0.4, 0.15, r) * smoothstep(0.1, 0.2, r);
-                vec3 color = vec3(0.5, 0.0, 0.5) * disk * (1.0 + sin(spiral * 10.0));
-                color += vec3(0.0, 0.8, 0.8) * disk * (1.0 + cos(spiral * 5.0));
-                
-                // قلب الثقب الأسود (العدم)
-                float hole = smoothstep(0.12, 0.13, r);
-                color *= hole;
-                
-                gl_FragColor = vec4(color, 1.0);
+        function setup() {
+            let canvas = createCanvas(windowWidth, windowHeight);
+            canvas.parent('canvas-container');
+            for (let i = 0; i < numParticles; i++) {
+                particles.push(new Particle());
             }
-        `;
-
-        let scene, camera, renderer, material, mesh;
-        let zoomVal = 1.0;
-        let active = false;
-
-        function init() {
-            scene = new THREE.Scene();
-            camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-            renderer = new THREE.WebGLRenderer();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.getElementById('canvas-container').appendChild(renderer.domElement);
-
-            const geometry = new THREE.PlaneGeometry(2, 2);
-            material = new THREE.ShaderMaterial({
-                uniforms: {
-                    time: { value: 0 },
-                    resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-                    zoom: { value: 1.0 }
-                },
-                fragmentShader
-            });
-
-            mesh = new THREE.Mesh(geometry, material);
-            scene.add(mesh);
-            animate();
         }
 
-        function startVortex() {
-            active = true;
-            document.getElementById('enter-btn').style.display = 'none';
+        function draw() {
+            background(0, 0, 0, 25); // أثر حركة (Motion Blur)
+            
+            let center = createVector(width / 2, height / 2);
+            let target = vortexActive ? center : createVector(mouseX, mouseY);
+
+            for (let p of particles) {
+                p.update(target, vortexActive);
+                p.show();
+            }
+
+            if (vortexActive) {
+                // تقليل عدد الجسيمات لزيادة التركيز في المركز
+                if (particles.length > 100) particles.splice(0, 5);
+            }
+        }
+
+        class Particle {
+            constructor() {
+                this.pos = createVector(random(width), random(height));
+                this.vel = p5.Vector.random2D();
+                this.acc = createVector();
+                this.maxSpeed = random(3, 8);
+                this.color = random() > 0.5 ? color(255, 0, 255) : color(0, 255, 255);
+            }
+
+            update(target, isVortex) {
+                let force = p5.Vector.sub(target, this.pos);
+                let d = force.mag();
+                if (isVortex) {
+                    force.setMag(1.5);
+                    let rotateForce = force.copy().rotate(HALF_PI); // دوران حول الثقب
+                    this.acc.add(rotateForce);
+                } else {
+                    force.setMag(0.5);
+                }
+                this.acc.add(force);
+                this.vel.add(this.acc);
+                this.vel.limit(this.maxSpeed);
+                this.pos.add(this.vel);
+                this.acc.mult(0);
+            }
+
+            show() {
+                stroke(this.color);
+                strokeWeight(random(1, 4));
+                point(this.pos.x, this.pos.y);
+            }
+        }
+
+        function mousePressed() {
+            vortexActive = true;
+            document.getElementById('instruction').style.opacity = 0;
             setTimeout(() => {
-                document.getElementById('names').style.opacity = '1';
-            }, 2000);
+                document.getElementById('final-ui').classList.add('show');
+            }, 1500);
         }
 
-        function animate(t) {
-            material.uniforms.time.value = t * 0.001;
-            if(active && material.uniforms.zoom.value < 50.0) {
-                material.uniforms.zoom.value += 0.2;
-            }
-            renderer.render(scene, camera);
-            requestAnimationFrame(animate);
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
         }
-
-        window.addEventListener('resize', () => {
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            material.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
-        });
-
-        init();
     </script>
 </body>
 </html>
 """
 
-components.html(black_hole_shader, height=900, scrolling=False)
-st.markdown("<style>header, footer, #MainMenu {visibility: hidden;}</style>", unsafe_allow_html=True)
+components.html(ultra_vortex_code, height=900, scrolling=False)
+
+# إخفاء واجهة ستريمليت بالكامل
+st.markdown("""
+<style>
+    header, footer, #MainMenu {visibility: hidden;}
+    .stApp {background: black;}
+</style>
+""", unsafe_allow_html=True)
