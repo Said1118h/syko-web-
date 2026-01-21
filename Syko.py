@@ -1,7 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="SYKO & YOUSRA | THE SINGULARITY", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="SYKO | THE SINGULARITY", layout="wide", initial_sidebar_state="collapsed")
 
 # شيدر (Shader) احترافي للثقب الأسود - جرافيكس سينمائي
 black_hole_shader = """
