@@ -1,116 +1,123 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-# إعدادات الشاشة الكاملة
-st.set_page_config(page_title="SYKO & YOUSRA | THE VOID", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="SYKO & YOUSRA | THE SINGULARITY", layout="wide", initial_sidebar_state="collapsed")
 
-# كود الجرافيكس المتقدم (Three.js + Shaders)
-black_hole_pro = """
+# شيدر (Shader) احترافي للثقب الأسود - جرافيكس سينمائي
+black_hole_shader = """
 <!DOCTYPE html>
 <html>
 <head>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; font-family: 'Orbitron', sans-serif; }
-        #ui-layer {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 10; pointer-events: none; transition: 2s;
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Arial Black', sans-serif; }
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; }
+        
+        .overlay {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; z-index: 10; pointer-events: none;
         }
-        .glitch-text {
-            font-size: 80px; color: #fff; font-weight: 900; letter-spacing: 15px;
-            text-shadow: 0 0 20px #00ffff, 0 0 40px #ff00ff; opacity: 0; transform: scale(0.5);
-            transition: all 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        
+        .name-container { opacity: 0; transition: 3s; }
+        .syko-yousra {
+            font-size: 80px; font-weight: 900; letter-spacing: 20px; color: #fff;
+            text-shadow: 0 0 30px #ff00ff, 0 0 60px #00ffff;
         }
-        .infinity-icon {
-            font-size: 100px; color: #ff00ff; opacity: 0;
-            filter: drop-shadow(0 0 20px #ff00ff); transition: 2s;
+        .infinity { font-size: 120px; color: #ff00ff; margin: 10px 0; display: block; }
+        
+        #enter-btn {
+            position: absolute; bottom: 10%; left: 50%; transform: translateX(-50%);
+            padding: 15px 40px; background: none; border: 2px solid #00ffff;
+            color: #00ffff; letter-spacing: 5px; cursor: pointer; z-index: 20;
+            transition: 0.5s; font-weight: bold;
         }
-        #instruction {
-            position: absolute; bottom: 50px; color: #00ffff; 
-            letter-spacing: 5px; animation: blink 1s infinite;
-        }
-        @keyframes blink { 50% { opacity: 0.3; } }
+        #enter-btn:hover { background: #00ffff; color: #000; box-shadow: 0 0 50px #00ffff; }
     </style>
 </head>
 <body>
-    <div id="ui-layer">
-        <div id="syko" class="glitch-text">SYKO</div>
-        <div id="inf" class="infinity-icon">∞</div>
-        <div id="yousra" class="glitch-text">YOUSRA</div>
-        <div id="instruction">TAP THE SINGULARITY</div>
+    <div id="canvas-container"></div>
+    <div class="overlay" id="names">
+        <div class="syko-yousra">SYKO</div>
+        <div class="infinity">∞</div>
+        <div class="syko-yousra">YOUSRA</div>
     </div>
+    <button id="enter-btn" onclick="startVortex()">ENTER THE VOID</button>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        let scene, camera, renderer, particles, starGeo;
-        let portalActive = false;
+        // كود الشيدر المتقدم لإنشاء ثقب أسود واقعي (Interstellar Style)
+        const fragmentShader = `
+            uniform float time;
+            uniform vec2 resolution;
+            uniform float zoom;
+
+            void main() {
+                vec2 uv = (gl_FragCoord.xy - 0.5 * resolution.xy) / min(resolution.y, resolution.x);
+                float r = length(uv);
+                float angle = atan(uv.y, uv.x);
+                
+                // تشويه الفضاء حول الثقب الأسود
+                float distort = 0.2 / (r + 0.01);
+                float spiral = angle + distort * zoom + time * 0.5;
+                
+                // إنشاء قرص التراكم المتوهج
+                float disk = smoothstep(0.4, 0.15, r) * smoothstep(0.1, 0.2, r);
+                vec3 color = vec3(0.5, 0.0, 0.5) * disk * (1.0 + sin(spiral * 10.0));
+                color += vec3(0.0, 0.8, 0.8) * disk * (1.0 + cos(spiral * 5.0));
+                
+                // قلب الثقب الأسود (العدم)
+                float hole = smoothstep(0.12, 0.13, r);
+                color *= hole;
+                
+                gl_FragColor = vec4(color, 1.0);
+            }
+        `;
+
+        let scene, camera, renderer, material, mesh;
+        let zoomVal = 1.0;
+        let active = false;
 
         function init() {
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
-            camera.position.z = 1;
-            camera.rotation.x = Math.PI / 2;
-
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+            renderer = new THREE.WebGLRenderer();
             renderer.setSize(window.innerWidth, window.innerHeight);
-            document.body.appendChild(renderer.domElement);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-            starGeo = new THREE.BufferGeometry();
-            let positions = [];
-            let velocities = [];
-            for (let i = 0; i < 8000; i++) {
-                positions.push(Math.random() * 600 - 300, Math.random() * 600 - 300, Math.random() * 600 - 300);
-                velocities.push(0);
-            }
-            starGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-            
-            let sprite = new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/disc.png');
-            let starMaterial = new THREE.PointsMaterial({
-                color: 0x00ffff, size: 0.7, map: sprite, transparent: true, blending: THREE.AdditiveBlending
+            const geometry = new THREE.PlaneGeometry(2, 2);
+            material = new THREE.ShaderMaterial({
+                uniforms: {
+                    time: { value: 0 },
+                    resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                    zoom: { value: 1.0 }
+                },
+                fragmentShader
             });
 
-            particles = new THREE.Points(starGeo, starMaterial);
-            scene.add(particles);
-
+            mesh = new THREE.Mesh(geometry, material);
+            scene.add(mesh);
             animate();
         }
 
-        function animate() {
-            let positions = starGeo.attributes.position.array;
-            for (let i = 0; i < positions.length; i += 3) {
-                if (portalActive) {
-                    // تأثير الثقب الأسود (جذب الجسيمات للمركز)
-                    positions[i] *= 0.96;
-                    positions[i+1] *= 0.96;
-                    positions[i+2] *= 0.96;
-                } else {
-                    positions[i+1] -= 1.5; // حركة النجوم العادية
-                    if (positions[i+1] < -200) positions[i+1] = 200;
-                }
+        function startVortex() {
+            active = true;
+            document.getElementById('enter-btn').style.display = 'none';
+            setTimeout(() => {
+                document.getElementById('names').style.opacity = '1';
+            }, 2000);
+        }
+
+        function animate(t) {
+            material.uniforms.time.value = t * 0.001;
+            if(active && material.uniforms.zoom.value < 50.0) {
+                material.uniforms.zoom.value += 0.2;
             }
-            starGeo.attributes.position.needsUpdate = true;
-            particles.rotation.y += 0.002;
-            
             renderer.render(scene, camera);
             requestAnimationFrame(animate);
         }
 
-        window.addEventListener('mousedown', () => {
-            portalActive = true;
-            document.getElementById('instruction').style.display = 'none';
-            particles.material.color.setHex(0xff00ff);
-            
-            setTimeout(() => {
-                document.getElementById('syko').style.opacity = '1';
-                document.getElementById('syko').style.transform = 'scale(1)';
-            }, 1000);
-            setTimeout(() => {
-                document.getElementById('inf').style.opacity = '1';
-            }, 1800);
-            setTimeout(() => {
-                document.getElementById('yousra').style.opacity = '1';
-                document.getElementById('yousra').style.transform = 'scale(1)';
-            }, 2500);
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            material.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
         });
 
         init();
@@ -119,8 +126,5 @@ black_hole_pro = """
 </html>
 """
 
-# عرض العمل في Streamlit
-components.html(black_hole_pro, height=900, scrolling=False)
-
-# إخفاء عناصر ستريمليت
+components.html(black_hole_shader, height=900, scrolling=False)
 st.markdown("<style>header, footer, #MainMenu {visibility: hidden;}</style>", unsafe_allow_html=True)
