@@ -1,56 +1,97 @@
 import streamlit as st
-import streamlit.components.v1 as components
+import requests
+import random
 
-st.set_page_config(page_title="SYKO BOOSTER", layout="wide")
+# إعدادات واجهة المستخدم
+st.set_page_config(page_title="SYKO EXCHANGE", layout="centered")
 
-# تأكد من أن رابط databaseURL مطابق لصورتك
-firebase_js = """
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyAbrrwnTAYVa-z83G9plOfieP4bm1rxDtA",
-    authDomain: "syko-booster.firebaseapp.com",
-    projectId: "syko-booster",
-    storageBucket: "syko-booster.firebasestorage.app",
-    messagingSenderId: "53373305140",
-    appId: "1:53373305140:web:0b69db40be835905206561",
-    databaseURL: "https://syko-booster-default-rtdb.firebaseio.com"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+# رابط قاعدة بياناتك (من الصور التي أرسلتها)
+DB_URL = "https://syko-booster-default-rtdb.firebaseio.com/"
 
-  function login() {
-    const user = document.getElementById('user-input').value.trim().toLowerCase();
-    if(user.length < 3) { alert("أدخل يوزر صحيح"); return; }
+st.markdown("<h1 style='text-align: center; color: #0ff;'>SYKO EXCHANGE SYSTEM</h1>", unsafe_allow_html=True)
+
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+
+# --- تسجيل الدخول ---
+if not st.session_state.logged_in:
+    st.info("سجل دخولك بيوزر إنستقرام لتبدأ التبادل")
+    u_input = st.text_input("اسم المستخدم (Username):", key="login_field")
+    if st.button("دخول"):
+        if len(u_input) > 2:
+            u = u_input.lower().strip().replace("@", "")
+            # جلب البيانات من Firebase
+            res = requests.get(f"{DB_URL}users/{u}.json")
+            data = res.json()
+            if data is None:
+                requests.put(f"{DB_URL}users/{u}.json", json={"coins": 0})
+                st.session_state.coins = 0
+            else:
+                st.session_state.coins = data.get("coins", 0)
+            st.session_state.username = u
+            st.session_state.logged_in = True
+            st.rerun()
+
+else:
+    # --- لوحة التحكم ---
+    st.sidebar.title(f"👤 {st.session_state.username}")
+    st.sidebar.subheader(f"🪙 رصيدك: {st.session_state.coins}")
     
-    // محاولة الاتصال بقاعدة البيانات
-    db.ref('users/' + user).once('value').then((snapshot) => {
-      // إذا نجح الاتصال، سينقلك للصفحة التالية
-      document.getElementById('login-box').style.display = 'none';
-      document.getElementById('main-content').style.display = 'block';
-      if(!snapshot.exists()) {
-        db.ref('users/' + user).set({coins: 0});
-      }
-    }).catch((error) => {
-      alert("خطأ في الاتصال بقاعدة البيانات: " + error.message);
-    });
-  }
-</script>
-"""
+    tab1, tab2 = st.tabs(["💰 جمع الكوينز", "📢 أضف حسابك"])
 
-# تصميم الواجهة (CSS)
-ui_html = """
-<div id="login-box" style="text-align:center; padding:50px; color:white; font-family:sans-serif;">
-  <h1 style="color:#0ff;">SYKO SYSTEM</h1>
-  <input type="text" id="user-input" placeholder="INSTAGRAM USER" style="padding:10px; width:80%;">
-  <button onclick="login()" style="padding:10px 20px; margin-top:20px; background:#0ff; border:none; cursor:pointer;">START</button>
-</div>
+    # --- القسم 1: جمع الكوينز (متابعة الآخرين) ---
+    with tab1:
+        st.write("تابع المستخدمين أدناه لتربح 10 كوينز عن كل متابعة")
+        
+        # جلب قائمة الأشخاص الذين طلبوا متابعين
+        orders_res = requests.get(f"{DB_URL}active_tasks.json")
+        tasks = orders_res.json()
 
-<div id="main-content" style="display:none; text-align:center; color:white; font-family:sans-serif;">
-  <h1 style="color:#ffd700;">WELCOME TO SYKO WORLD</h1>
-  <p>جمع الكوينز الآن!</p>
-</div>
-"""
+        if tasks:
+            # فلترة القائمة لاستبعاد حساب المستخدم الحالي
+            other_users = {k: v for k, v in tasks.items() if v['user'] != st.session_state.username}
+            
+            if other_users:
+                task_id, task_data = random.choice(list(other_users.items()))
+                target = task_data['user']
+                
+                st.warning(f"المهمة الحالية: متابعة @{target}")
+                st.markdown(f"[🔗 اضغط هنا لفتح الحساب ومتابعته](https://www.instagram.com/{target})")
+                
+                if st.button("تأكيد المتابعة (+10 كوينز)"):
+                    # زيادة رصيد المستخدم
+                    new_coins = st.session_state.coins + 10
+                    requests.patch(f"{DB_URL}users/{st.session_state.username}.json", json={"coins": new_coins})
+                    st.session_state.coins = new_coins
+                    st.success("تمت إضافة الكوينز بنجاح!")
+                    st.rerun()
+            else:
+                st.write("لا يوجد مستخدمون حالياً في قائمة الانتظار. جرب لاحقاً!")
+        else:
+            st.write("قائمة المهام فارغة. كن أول من يضيف حسابه!")
 
-components.html(firebase_js + ui_html, height=600)
+    # --- القسم 2: إضافة الاسم للقائمة (صرف الكوينز) ---
+    with tab2:
+        st.subheader("اجعل الآخرين يتابعونك")
+        st.write("تكلفة إضافة اسمك للقائمة هي 100 كوينز.")
+        
+        if st.button("إضافة اسمي للقائمة (خصم 100 كوينز)"):
+            if st.session_state.coins >= 100:
+                # خصم الكوينز
+                new_coins = st.session_state.coins - 100
+                requests.patch(f"{DB_URL}users/{st.session_state.username}.json", json={"coins": new_coins})
+                st.session_state.coins = new_coins
+                
+                # إضافة الاسم لقائمة المهام لكي يراه المستخدمون الآخرون في Tab 1
+                task_data = {"user": st.session_state.username}
+                requests.post(f"{DB_URL}active_tasks.json", json=task_data)
+                
+                st.balloons()
+                st.success("تم إدراج اسمك! سيقوم المستخدمون بمتابعتك الآن.")
+                st.rerun()
+            else:
+                st.error("رصيدك لا يكفي! اذهب لجمع الكوينز أولاً.")
+    
+    if st.sidebar.button("تسجيل خروج"):
+        st.session_state.logged_in = False
+        st.rerun()
