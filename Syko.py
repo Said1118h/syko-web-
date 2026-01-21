@@ -1,15 +1,15 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="SYKO | REALITY WARP", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="SYKO | GHOST RIPPLE", layout="wide", initial_sidebar_state="collapsed")
 
-warp_shader_code = """
+vortex_final_code = """
 <!DOCTYPE html>
 <html>
 <head>
     <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@700&family=JetBrains+Mono:wght@300&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; background: #000; overflow: hidden; font-family: 'Syncopate', sans-serif; cursor: crosshair; }
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Syncopate', sans-serif; cursor: none; }
         canvas { width: 100vw; height: 100vh; display: block; }
         
         #reveal-layer {
@@ -33,13 +33,6 @@ warp_shader_code = """
             display: none; flex-direction: column; align-items: center; justify-content: center;
             opacity: 0; transition: 1s;
         }
-
-        .terminal-container {
-            position: relative; width: 320px; height: 320px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            border: 1px solid rgba(0, 255, 255, 0.1);
-        }
-
         .active { opacity: 1 !important; pointer-events: all !important; }
         .show-page { display: flex !important; opacity: 1 !important; }
     </style>
@@ -55,7 +48,7 @@ warp_shader_code = """
     </div>
 
     <div id="second-page">
-        <div class="terminal-container">
+        <div style="border:1px solid #0ff; padding:50px; text-align:center; position:relative;">
             <a href="https://www.instagram.com/s1x.s9" target="_blank" style="text-decoration:none; color:#fff; font-size:24px; letter-spacing:5px;">@S1X.S9</a>
             <div style="font-family:'JetBrains Mono'; color:#0ff; font-size:10px; margin-top:20px; opacity:0.5;">REALITY STABILIZED</div>
         </div>
@@ -71,34 +64,34 @@ warp_shader_code = """
         uniform float time;
         uniform vec2 res;
         uniform vec2 mouse;
+        uniform float strength; // قوة اللمس المتغيرة
         uniform float transition;
 
         void main() {
             vec2 uv = (gl_FragCoord.xy - 0.5 * res.xy) / min(res.y, res.x);
             vec2 m = (mouse.xy - 0.5 * res.xy) / min(res.y, res.x);
             
-            // حساب المسافة من الماوس لخلق "اختراق النسيج"
+            // تأثير التمزق يعتمد الآن على القوة (strength) التي تنقص عند التوقف
             float distToMouse = length(uv - m);
-            float ripple = smoothstep(0.2, 0.0, distToMouse) * 0.05;
+            float ripple = smoothstep(0.15, 0.0, distToMouse) * strength;
             
-            // تطبيق التشوية بناءً على مكان الماوس
-            uv += (uv - m) * ripple * (1.0 - transition);
+            // تشويه خفيف جداً وطبيعي
+            uv += (uv - m) * ripple * 0.8;
 
             float r = length(uv);
             float a = atan(uv.y, uv.x);
             
             float s = sin(a * 4.0 + time + 1.0/r) * 0.5 + 0.5;
-            float glow = 0.015 / abs(r - 0.3 - s * 0.08 * transition);
+            float glow = 0.012 / abs(r - 0.3 - s * 0.08 * transition);
             
-            // لون التمزق (Cyan & Magenta)
             vec3 col = vec3(0.0, 0.8, 1.0) * glow;
             col += vec3(1.0, 0.0, 1.0) * (glow * 0.4);
             
-            // إضافة بريق عند لمس النسيج
-            col += vec3(0.0, 1.0, 1.0) * (ripple * 5.0);
+            // وميض لحظي يختفي مع السكون
+            col += vec3(0.5, 1.0, 1.0) * (ripple * 2.0);
 
             float hole = smoothstep(0.1 + transition*0.5, 0.15 + transition*0.8, r);
-            gl_FragColor = vec4(col * hole * (1.0 - transition*0.7), 1.0);
+            gl_FragColor = vec4(col * hole * (1.0 - transition*0.8), 1.0);
         }
     </script>
 
@@ -127,51 +120,9 @@ warp_shader_code = """
 
         let trans = 0, isPressed = false;
         let mouseX = 0, mouseY = 0;
+        let strength = 0; // القوة الحالية
 
-        window.addEventListener('mousemove', (e) => {
-            mouseX = e.clientX;
-            mouseY = window.innerHeight - e.clientY;
-        });
-        window.addEventListener('touchmove', (e) => {
-            mouseX = e.touches[0].clientX;
-            mouseY = window.innerHeight - e.touches[0].clientY;
-        });
-
-        window.addEventListener('mousedown', () => {
-            if(!isPressed) {
-                isPressed = true;
-                setTimeout(() => {
-                    document.getElementById('core-btn').style.opacity = "1";
-                    document.getElementById('core-btn').style.pointerEvents = "all";
-                }, 2000);
-            }
-        });
-
-        function openSecondPage() {
-            document.getElementById('reveal-layer').style.display = 'none';
-            document.getElementById('second-page').classList.add('show-page');
-        }
-
-        function render(now) {
-            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-            gl.viewport(0, 0, canvas.width, canvas.height);
-            if(isPressed && trans < 1.0) trans += 0.006;
-            if(trans >= 0.8) document.getElementById('reveal-layer').classList.add('active');
-
-            gl.uniform1f(gl.getUniformLocation(prog, 'time'), now * 0.001);
-            gl.uniform2f(gl.getUniformLocation(prog, 'res'), canvas.width, canvas.height);
-            gl.uniform2f(gl.getUniformLocation(prog, 'mouse'), mouseX, mouseY);
-            gl.uniform1f(gl.getUniformLocation(prog, 'transition'), trans);
-            
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-            requestAnimationFrame(render);
-        }
-        requestAnimationFrame(render);
-    </script>
-</body>
-</html>
-"""
-
-components.html(warp_shader_code, height=900, scrolling=False)
-
-st.markdown("<style>header, footer, #MainMenu {visibility: hidden;} .stApp {background:black;}</style>", unsafe_allow_html=True)
+        function updateMouse(x, y) {
+            mouseX = x;
+            mouseY = window.innerHeight - y;
+            strength = 0.5; // ارفع القوة عند
