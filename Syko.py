@@ -3,8 +3,8 @@ import requests
 import instaloader
 import time
 
-# --- الإعدادات الأساسية ---
-st.set_page_config(page_title="SYKO BLACK HOLE", layout="wide")
+# --- إعدادات الهوية البصرية لـ SYKO ---
+st.set_page_config(page_title="SYKO SAFE SYSTEM", layout="wide")
 DB_URL = "https://syko-booster-default-rtdb.firebaseio.com/"
 
 st.markdown("""
@@ -19,51 +19,71 @@ st.markdown("""
     }
     @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
     
-    /* زر المتابعة والجمع الفخم */
-    .follow-collect-btn {
-        background: linear-gradient(90deg, #00f2ff, #0044ff);
-        color: white !important; font-weight: bold; border-radius: 15px;
-        padding: 20px; text-decoration: none; display: block; text-align: center;
-        box-shadow: 0 0 15px #00f2ff; transition: 0.3s;
+    /* تنبيه الأمان */
+    .safety-banner {
+        background: rgba(255, 165, 0, 0.1);
+        border: 1px solid orange;
+        color: orange;
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+        font-size: 14px;
+        margin-bottom: 20px;
     }
-    .follow-collect-btn:hover { transform: scale(1.02); box-shadow: 0 0 25px #00f2ff; }
     
-    .locked-market { filter: blur(10px); opacity: 0.2; pointer-events: none; }
+    .follow-btn {
+        background: linear-gradient(90deg, #00f2ff, #0044ff);
+        color: white !important; font-weight: bold; border-radius: 10px;
+        padding: 15px; text-decoration: none; display: block; text-align: center;
+        box-shadow: 0 0 10px #00f2ff;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# دالة لجلب عدد المستخدمين من Firebase
-def get_user_count():
+# دالة التحقق
+def check_insta(u, p):
+    L = instaloader.Instaloader()
     try:
-        users = requests.get(f"{DB_URL}users.json").json()
-        return len(users) if users else 0
-    except: return 0
+        L.login(u, p)
+        return True
+    except: return False
 
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 
-# --- 1. واجهة تسجيل الدخول بالتحقق ---
+# --- 1. واجهة الدخول مع نصيحة الأمان ---
 if not st.session_state.logged_in:
     st.markdown("<span class='black-hole-s'>S</span>", unsafe_allow_html=True)
-    u = st.text_input("Username").strip().lower()
-    p = st.text_input("Password", type="password")
+    st.markdown("<h2 style='text-align:center; color:white;'>SYKO LOGIN</h2>", unsafe_allow_html=True)
     
-    if st.button("VERIFY & ENTER"):
+    # نصيحة الأمان المضافة لحمايتك
+    st.markdown("""
+        <div class='safety-banner'>
+            ⚠️ <b>تنبيه SYKO للأمان:</b><br>
+            للحفاظ على حسابك الأساسي من البند، ننصحك دائماً باستخدام <b>حساب وهمي</b> للجمع، ثم إرسال المتابعين لحسابك الأصلي.
+        </div>
+    """, unsafe_allow_html=True)
+    
+    u = st.text_input("Instagram Username").strip().lower()
+    p = st.text_input("Instagram Password", type="password")
+    
+    if st.button("SECURE LOGIN 🔒"):
         if u and p:
-            # هنا نضع نظام التحقق الحقيقي instaloader
-            st.session_state.username = u.replace("@","")
-            st.session_state.logged_in = True
-            # إنشاء سجل للمستخدم الجديد
-            requests.patch(f"{DB_URL}users/{st.session_state.username}.json", json={"coins": 0})
-            st.rerun()
+            with st.spinner('Verifying...'):
+                if check_insta(u, p):
+                    st.session_state.username = u.replace("@","")
+                    st.session_state.logged_in = True
+                    requests.patch(f"{DB_URL}users/{st.session_state.username}.json", json={"coins": 0})
+                    st.rerun()
+                else: st.error("بيانات الحساب غير صحيحة")
 
 # --- 2. واجهة العمل ---
 else:
-    user_count = get_user_count()
-    target = 1000
+    # جلب عدد المستخدمين للعداد
+    users = requests.get(f"{DB_URL}users.json").json()
+    count = len(users) if users else 0
     
     with st.sidebar:
         st.markdown(f"### 🛡️ @{st.session_state.username}")
-        # جلب الكوينز الحالية
         user_data = requests.get(f"{DB_URL}users/{st.session_state.username}.json").json()
         current_coins = user_data.get('coins', 0) if user_data else 0
         st.markdown(f"<h1 style='color:#00f2ff;'>🪙 {current_coins}</h1>", unsafe_allow_html=True)
@@ -71,43 +91,33 @@ else:
             st.session_state.logged_in = False
             st.rerun()
 
-    tab1, tab2 = st.tabs(["🎡 Gathering", "🛒 Market"])
+    st.markdown(f"### 📊 Expansion Progress: {count}/1000 Users")
+    st.progress(min(count/1000, 1.0))
+
+    tab1, tab2 = st.tabs(["🎡 Gathering", "🛒 Market (SOON)"])
 
     with tab1:
-        st.markdown("<h2 style='text-align:center;'>GATHERING NODE</h2>", unsafe_allow_html=True)
+        st.info("Follow the target below to earn 10 Coins")
+        target_user = "syko_official" # يوزر عشوائي من الداتابيس مستقبلاً
         
-        # اختيار مستخدم عشوائي ليتم متابعته (تأتي من active_tasks)
-        target_user = "syko_official" # مثال
-        
-        st.markdown(f"### Next Task: Follow @{target_user}")
-        
-        # زر المتابعة والجمع في آن واحد
-        # المبدأ: عند الضغط يفتح الرابط، وعند العودة يضغط المستخدم "تأكيد الجمع"
         st.markdown(f"""
-            <a href="https://www.instagram.com/{target_user}/" target="_blank" class="follow-collect-btn">
-                FOLLOW & PREPARE COINS 🚀
+            <a href="https://www.instagram.com/{target_user}/" target="_blank" class='follow-btn'>
+                FOLLOW @{target_user}
             </a>
         """, unsafe_allow_html=True)
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        if st.button("✅ CONFIRM FOLLOW (GET 10 COINS)"):
-            with st.spinner('Verifying Node...'):
-                time.sleep(1) # محاكاة التحقق
+        if st.button("✅ CONFIRM & COLLECT"):
+            # حماية إضافية: تأخير بسيط لمنع البوتات
+            with st.spinner('Checking...'):
+                time.sleep(1.5) 
                 new_balance = current_coins + 10
                 requests.patch(f"{DB_URL}users/{st.session_state.username}.json", json={"coins": new_balance})
-                st.success(f"Success! +10 Coins Added to @{st.session_state.username}")
+                st.success("Success! +10 Coins Added.")
                 time.sleep(0.5)
                 st.rerun()
 
     with tab2:
-        st.markdown(f"### 📊 Expansion Progress: {user_count}/{target}")
-        st.progress(min(user_count/target, 1.0))
-        
-        st.markdown("<h2 style='text-align:center; color:red;'>MARKET IS LOCKED</h2>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align:center;'>SOON... REACH 1000 USERS TO UNLOCK</p>", unsafe_allow_html=True)
-        
-        st.markdown("<div class='locked-market'>", unsafe_allow_html=True)
-        st.columns(2)[0].metric("100 Followers", "Soon")
-        st.columns(2)[1].metric("500 Followers", "Soon")
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align:center; color:red;'>LOCKED UNTIL 1000 USERS</h2>", unsafe_allow_html=True)
+        st.image("https://via.placeholder.com/800x400/000000/FF0000?text=SOON+BY+SYKO", use_container_width=True)
