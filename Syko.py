@@ -3,30 +3,30 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="SYKO & YOUSRA | THE VOID", layout="wide", initial_sidebar_state="collapsed")
 
-# كود الجرافيكس المتقدم - شيدرز وتفاعل فيزيائي
-supreme_vortex = """
+# كود الجرافيكس الفائق: شيدرز + جزيئات فيزيائية مع توهج نيون
+super_pro_vortex = """
 <!DOCTYPE html>
 <html>
 <head>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; cursor: crosshair; }
-        canvas { display: block; filter: contrast(120%) brightness(110%); }
-        
+        body { margin: 0; background: #000; overflow: hidden; cursor: none; }
+        canvas { display: block; }
         .ui-layer {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            text-align: center; z-index: 1000; pointer-events: none; opacity: 0; transition: 3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: center; z-index: 1000; pointer-events: none; opacity: 0;
+            transition: opacity 2s ease-in-out, transform 2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         .name {
-            font-family: 'Arial Black', sans-serif; font-size: 85px; font-weight: 900;
-            letter-spacing: 20px; color: #fff; line-height: 0.8;
-            text-shadow: 0 0 20px #ff00ff, 0 0 50px #00ffff;
+            font-family: 'Arial Black', sans-serif; font-size: clamp(40px, 10vw, 90px);
+            font-weight: 900; letter-spacing: 15px; color: #fff;
+            text-shadow: 0 0 20px #ff00ff, 0 0 40px #00ffff;
         }
         .inf-symbol {
-            font-size: 140px; color: #00ffff; display: block; margin: 20px 0;
-            filter: drop-shadow(0 0 30px #00ffff); animation: float 3s infinite ease-in-out;
+            font-size: clamp(60px, 15vw, 130px); color: #00ffff; margin: 10px 0;
+            filter: drop-shadow(0 0 30px #00ffff); animation: pulse 2s infinite ease-in-out;
         }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
-        .active { opacity: 1; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.1); opacity: 1; } }
+        .active { opacity: 1; transform: translate(-50%, -50%) scale(1); }
     </style>
 </head>
 <body>
@@ -38,20 +38,23 @@ supreme_vortex = """
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
     <script>
         let particles = [];
-        let vortex = false;
+        let isActive = false;
 
         function setup() {
             createCanvas(windowWidth, windowHeight);
-            for (let i = 0; i < 2500; i++) particles.push(new Particle());
+            // بناء "نسيج الفضاء" بـ 3000 جزيء ضوئي
+            for (let i = 0; i < 3000; i++) particles.push(new Particle());
         }
 
         function draw() {
-            background(0, 30); // أثر الدخان الرقمي
-            let centerX = width / 2;
-            let centerY = height / 2;
+            // تأثير "Motion Blur" سينمائي لتعميق الحركة
+            background(0, 45); 
+            
+            let tx = isActive ? width/2 : mouseX;
+            let ty = isActive ? height/2 : mouseY;
 
             for (let p of particles) {
-                p.attract(centerX, centerY, vortex);
+                p.behavior(tx, ty, isActive);
                 p.update();
                 p.show();
             }
@@ -60,24 +63,35 @@ supreme_vortex = """
         class Particle {
             constructor() {
                 this.pos = createVector(random(width), random(height));
-                this.vel = p5.Vector.random2D().mult(random(2, 5));
+                this.vel = p5.Vector.random2D();
                 this.acc = createVector();
-                this.color = random() > 0.5 ? color(255, 0, 255, 150) : color(0, 255, 255, 150);
-                this.maxSpeed = random(4, 10);
+                this.maxSpeed = random(3, 12);
+                this.color = random() > 0.5 ? color(0, 255, 255, 180) : color(255, 0, 255, 180);
+                this.size = random(1, 4);
             }
 
-            attract(tx, ty, isVortex) {
-                let force = createVector(tx - this.pos.x, ty - this.pos.y);
+            behavior(tx, ty, active) {
+                let target = createVector(tx, ty);
+                let force = p5.Vector.sub(target, this.pos);
                 let d = force.mag();
-                if (isVortex) {
-                    force.setMag(1.2);
-                    let rotate = createVector(-force.y, force.x).mult(2.5); // قوة الدوران
-                    this.acc.add(rotate);
-                    if (d < 50) this.pos = createVector(random(width), random(height)); // إعادة تدوير الجزيئات
+
+                if (active) {
+                    // دوامة الثقب الأسود الحقيقية
+                    force.setMag(1.5);
+                    let steering = createVector(-force.y, force.x).mult(3); 
+                    this.acc.add(steering);
+                    this.acc.add(force);
+                    if (d < 30) this.pos = createVector(random(width), random(height));
                 } else {
-                    force.setMag(0.1);
+                    // تفاعل اللمس (الهروب ثم العودة)
+                    if (d < 150) {
+                        force.setMag(-2);
+                        this.acc.add(force);
+                    } else {
+                        let wander = p5.Vector.random2D().mult(0.2);
+                        this.acc.add(wander);
+                    }
                 }
-                this.acc.add(force);
             }
 
             update() {
@@ -89,20 +103,33 @@ supreme_vortex = """
 
             show() {
                 stroke(this.color);
-                strokeWeight(random(1, 3));
+                strokeWeight(this.size);
                 point(this.pos.x, this.pos.y);
             }
         }
 
         function mousePressed() {
-            vortex = true;
-            document.getElementById('ui').classList.add('active');
+            isActive = !isActive;
+            const ui = document.getElementById('ui');
+            if(isActive) ui.classList.add('active');
+            else ui.classList.remove('active');
+        }
+
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
         }
     </script>
 </body>
 </html>
 """
 
-components.html(supreme_vortex, height=900, scrolling=False)
+components.html(super_pro_vortex, height=900, scrolling=False)
 
-st.markdown("<style>header, footer, #MainMenu {visibility: hidden;} .stApp {background:black;}</style>", unsafe_allow_html=True)
+# تصفير واجهة ستريمليت ليكون التركيز 100% على الجرافيكس
+st.markdown("""
+<style>
+    header, footer, #MainMenu {visibility: hidden;}
+    .stApp {background: black;}
+    * { overflow: hidden; }
+</style>
+""", unsafe_allow_html=True)
